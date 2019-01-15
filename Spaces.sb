@@ -1,22 +1,25 @@
-'Basic window configs
+'===============================
+'Main configs
+'===============================
 width = 600
 height = 600
 numbullets = 50
+numSmallEnemeies = 20
+numMediumEnemies = 10
+numBigEnemies = 10
+basepath = Program.Directory
 
-'GraphicsWindow configs
-GraphicsWindow.Width = width
-GraphicsWindow.Height = height
-GraphicsWindow.CanResize = 0
-GraphicsWindow.Title = "Save the planet"
-GraphicsWindow.BackgroundColor = "black"
-GraphicsWindow.Clear()
-
-'Reload timer configs
+'===============================
+'Timer for reloading ammo
+'===============================
 Timer.Interval = 1000
 Timer.Pause()
 Timer.Tick = OnTick
 
-'Call setup subroutines
+'===============================
+'Setup subroutines
+'===============================
+GraphicsWindow.Clear()
 FirstBarrierDraw()
 SecondBarrierDraw()
 FinalBarrierDraw()
@@ -24,16 +27,72 @@ RocketConstantsInitialize()
 RocketInitialize()
 RocketDraw()
 BulletArrayInitialze()
+SmallEnemyArrayInitialize()
+
+'===============================
+'Graphics window configs
+'===============================
+GraphicsWindow.Width = width
+GraphicsWindow.Height = height
+GraphicsWindow.CanResize = 0
+GraphicsWindow.Title = "Save the planet"
+GraphicsWindow.BackgroundColor = "black"
 GraphicsWindow.KeyDown = MoveRocket
 
-'The game loop
+'===============================
+'Game loop
+'===============================
 GameLoop:
+SmallEnemyUpdate()
 BulletUpdate()
+SmallEnemyDraw()
 BulletDraw()
+BulletSmallEnemyCollison()
 Program.Delay(48)
 Goto GameLoop
 
+'===============================
 'Subroutines
+'===============================
+' Enemies
+Sub SmallEnemyArrayReset
+  For i = 1 To numSmallEnemeies
+    smallEnemyX[i] = 8 + Math.GetRandomNumber(width - 8)
+    smallEnemyY[i] = -40 + (-1 * Math.GetRandomNumber(1000))
+    smallEnemyAlive[i] = 1
+  EndFor
+EndSub
+
+Sub SmallEnemyArrayInitialize
+  c = GraphicsWindow.BrushColor
+  GraphicsWindow.BrushColor = "white"
+  For i = 1 To numSmallEnemeies
+    smallEnemyShape[i] = Shapes.AddEllipse(6, 6)
+    Shapes.Move(smallEnemyShape[i], -100, -100)
+  EndFor
+  SmallEnemyArrayReset()
+  GraphicsWindow.BrushColor = c
+EndSub
+
+Sub SmallEnemyUpdate
+  For i = 1 To numSmallEnemeies
+    If smallEnemyAlive[i] = 1 Then
+      smallEnemyY[i] = smallEnemyY[i] + 1
+    Else
+      Shapes.Animate(smallEnemyShape[i], smallEnemyX[i], 2 * height, 1000)
+    EndIf
+  EndFor
+EndSub
+
+Sub SmallEnemyDraw
+  For i = 1 To numSmallEnemeies
+    If smallEnemyAlive[i] = 1 Then
+      Shapes.Move(smallEnemyShape[i], smallEnemyX[i], smallEnemyY[i])
+    EndIf
+  EndFor
+EndSub
+
+'Bullets
 Sub BulletArrayInitialze
   c = GraphicsWindow.BrushColor
   GraphicsWindow.BrushColor = "white"
@@ -55,6 +114,7 @@ EndSub
 
 Sub BulletFire
   If bulletIndex <= (numbullets - 1) Then
+    Sound.PlayClick()
     bulletIndex = bulletIndex + 1
     bulletx[bulletIndex] = rocketX - 5
     bullety[bulletIndex] = rocketY
@@ -64,7 +124,7 @@ EndSub
 Sub BulletUpdate
   For i = 1 To bulletIndex
     If bullety[i] >= -100 Then
-      bullety[i] = bullety[i] - 6
+      bullety[i] = bullety[i] - 8
     EndIf
   EndFor
 EndSub
@@ -75,6 +135,35 @@ Sub BulletDraw
   EndFor
 EndSub
 
+'Collison detection
+'Bullet <==> SmallEnemy
+'Bullet size = 10
+'Enemy size 6
+Sub BulletSmallEnemyCollison
+  For i = 1 To numbullets
+    For j = 1 To numSmallEnemeies
+      b1 = bulletx[i]
+      b2 = bullety[i]
+      e1 = smallEnemyX[j]
+      e2 = smallEnemyY[j]
+      If e2 >= 6 Then
+        If b2 >= 10 Then
+          If e1 >= b1 - 6 Then
+            If e1 <= b1 + 16 Then
+              If (e2+10) >= b2 Then
+                If (e2+10) <= b2 + 16 Then
+                  smallEnemyAlive[j] = 0
+                EndIf
+              EndIf
+            EndIf
+          EndIf
+        EndIf
+      EndIf
+    EndFor
+  EndFor
+EndSub
+
+'Barriers
 Sub FirstBarrierDraw
   i = 7
   p = GraphicsWindow.PenWidth
@@ -114,6 +203,7 @@ Sub FinalBarrierDraw
   GraphicsWindow.PenColor = c
 EndSub
 
+'Rocket
 Sub RocketConstantsInitialize
   rocketRectWidth = 6
   rocketRectHeight = 20 
@@ -165,11 +255,11 @@ Sub MoveRocket
     StartRefillTimer()
   EndIf
   
-  If rocketX <= (rocketRectWidth/2) + rocketHeadDiff + rocketRectWidth Then
-    rocketX = (rocketRectWidth/2) + rocketHeadDiff + rocketRectWidth
+  If rocketX <= (rocketRectWidth/2) + rocketHeadDiff + rocketRectWidth - 4 Then
+    rocketX = (rocketRectWidth/2) + rocketHeadDiff + rocketRectWidth - 4
   EndIf  
-  If rocketX >= width - ((rocketRectWidth/2) + rocketHeadDiff + rocketRectWidth) Then
-    rocketX = width - ((rocketRectWidth/2) + rocketHeadDiff + rocketRectWidth)
+  If rocketX >= width - ((rocketRectWidth/2) + rocketHeadDiff + rocketRectWidth) + 14 Then
+    rocketX = width - ((rocketRectWidth/2) + rocketHeadDiff + rocketRectWidth) + 14
   EndIf
   RocketDraw()
 EndSub
