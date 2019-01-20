@@ -1,0 +1,289 @@
+'===============================
+'Main configs
+'===============================
+width = 600
+height = 600
+numbullets = 50
+numSmallEnemeies = 20
+numMediumEnemies = 10
+numBigEnemies = 10
+basepath = Program.Directory
+
+'===============================
+'Timer for reloading ammo
+'===============================
+Timer.Interval = 1000
+Timer.Pause()
+Timer.Tick = OnTick
+
+'===============================
+'Setup subroutines
+'===============================
+GraphicsWindow.Clear()
+FirstBarrierDraw()
+SecondBarrierDraw()
+FinalBarrierDraw()
+RocketConstantsInitialize()
+RocketInitialize()
+RocketDraw()
+BulletArrayInitialze()
+SmallEnemyArrayInitialize()
+
+'===============================
+'Graphics window configs
+'===============================
+GraphicsWindow.Width = width
+GraphicsWindow.Height = height
+GraphicsWindow.CanResize = 0
+GraphicsWindow.Title = "Save the planet"
+GraphicsWindow.BackgroundColor = "black"
+GraphicsWindow.KeyDown = MoveRocket
+
+'===============================
+'Game loop
+'===============================
+GameLoop:
+SmallEnemyUpdate()
+BulletUpdate()
+SmallEnemyDraw()
+BulletDraw()
+BulletSmallEnemyCollison()
+Program.Delay(48)
+Goto GameLoop
+
+'===============================
+'Subroutines
+'===============================
+' Enemies
+Sub SmallEnemyArrayReset
+  For i = 1 To numSmallEnemeies
+    smallEnemies["x"][i] = 8 + Math.GetRandomNumber(width - 8)
+    smallEnemies["y"][i] = -40 + (-1 * Math.GetRandomNumber(1000))
+    smallEnemies["alive"][i] = 1
+  EndFor
+EndSub
+
+Sub SmallEnemyArrayInitialize
+  c = GraphicsWindow.BrushColor
+  GraphicsWindow.BrushColor = "white"
+  For i = 1 To numSmallEnemeies
+    smallEnemies["shape"][i] = Shapes.AddEllipse(6, 6)
+    Shapes.Move(smallEnemies["shape"][i], -100, -100)
+  EndFor
+  SmallEnemyArrayReset()
+  GraphicsWindow.BrushColor = c
+EndSub
+
+Sub SmallEnemyUpdate
+  For i = 1 To numSmallEnemeies
+    If smallEnemies["alive"][i] = 1 Then
+      smallEnemies["y"][i] = smallEnemies["y"][i] + 1
+    Else
+      Shapes.Animate(smallEnemies["shape"][i], smallEnemies["x"][i], 2 * height, 1000)
+    EndIf
+  EndFor
+EndSub
+
+Sub SmallEnemyDraw
+  For i = 1 To numSmallEnemeies
+    If smallEnemies["alive"][i] = 1 Then
+      Shapes.Move(smallEnemies["shape"][i], smallEnemies["x"][i], smallEnemies["y"][i])
+    EndIf
+  EndFor
+EndSub
+
+'Bullets
+Sub BulletArrayInitialze
+  c = GraphicsWindow.BrushColor
+  GraphicsWindow.BrushColor = "white"
+  For i = 1 To numbullets
+    bullets["shape"][i] = Shapes.AddEllipse(10, 10)
+    Shapes.Move(bullets["shape"][i], -100, -100)
+  EndFor  
+  BulletArrayReset()
+  GraphicsWindow.BrushColor = c
+EndSub
+
+Sub BulletArrayReset
+  For i = 1 To numbullets
+    bullets["x"][i] = 0
+    bullets["y"][i] = 0
+    bullets["alive"][i] = 1
+  EndFor
+  bulletIndex = 0
+EndSub
+
+Sub BulletFire
+  If bulletIndex <= (numbullets - 1) Then
+    Sound.PlayClick()
+    bulletIndex = bulletIndex + 1
+    bullets["x"][bulletIndex] = rocket["x"] - 5
+    bullets["y"][bulletIndex] = rocket["y"]
+  EndIf
+EndSub
+
+Sub BulletUpdate
+  For i = 1 To bulletIndex
+    If bullets["y"][i] >= -100 Then
+      bullets["y"][i] = bullets["y"][i] - 8
+    EndIf
+  EndFor
+EndSub
+
+Sub BulletDraw
+  For i = 1 To bulletIndex
+    Shapes.Move(bullets["shape"][i], bullets["x"][i], bullets["y"][i])
+  EndFor
+EndSub
+
+'Collison detection
+'Bullet <==> SmallEnemy
+'Bullet size = 10
+'Enemy size 6
+Sub BulletSmallEnemyCollison
+  For i = 1 To numbullets
+    For j = 1 To numSmallEnemeies
+      b1 = bullets["x"][i]
+      b2 = bullets["y"][i]
+      e1 = smallEnemies["x"][j]
+      e2 = smallEnemies["y"][j]
+      If e2 >= 6 Then
+        If b2 >= 10 Then
+          If e1 >= b1 - 6 Then
+            If e1 <= b1 + 16 Then
+              If (e2+10) >= b2 Then
+                If (e2+10) <= b2 + 16 Then
+                  If bullets["alive"][i] = 1 then
+                    bullets["alive"][i] = 0
+                    smallEnemies["alive"][j] = 0
+                  EndIf
+                EndIf
+              EndIf
+            EndIf
+          EndIf
+        EndIf
+      EndIf
+    EndFor
+  EndFor
+EndSub
+
+'Barriers
+Sub FirstBarrierDraw
+  i = 7
+  p = GraphicsWindow.PenWidth
+  c = GraphicsWindow.PenColor
+  GraphicsWindow.PenColor = "purple"
+  For j = 1 To 10
+    GraphicsWindow.PenWidth = i - j
+    GraphicsWindow.DrawLine(0, 300+j+2, width+10, 300+j+2)
+  EndFor
+  GraphicsWindow.PenWidth = p
+  GraphicsWindow.PenColor = c
+EndSub
+
+Sub SecondBarrierDraw
+  i = 7
+  p = GraphicsWindow.PenWidth
+  c = GraphicsWindow.PenColor
+  GraphicsWindow.PenColor = "blue"
+  For j = 1 To 10
+    GraphicsWindow.PenWidth = i - j
+    GraphicsWindow.DrawLine(0, 400+j+2, width+10, 400+j+2)
+  EndFor
+  GraphicsWindow.PenWidth = p
+  GraphicsWindow.PenColor = c
+EndSub
+
+Sub FinalBarrierDraw
+  i = 7
+  p = GraphicsWindow.PenWidth
+  c = GraphicsWindow.PenColor
+  GraphicsWindow.PenColor = "crimson"
+  For j = 1 To 10
+    GraphicsWindow.PenWidth = i - j
+    GraphicsWindow.DrawLine(0, 560+j+2, width+10, 560+j+2)
+  EndFor
+  GraphicsWindow.PenWidth = p
+  GraphicsWindow.PenColor = c
+EndSub
+
+'Rocket
+Sub RocketConstantsInitialize
+  rocket["rectWidth"] = 6
+  rocket["rectHeight"] = 20 
+  rocket["headDiff"] = 8
+  rocket["widthDiff"] = 4
+  rocket["moveDiff"] = 8
+  rocket["refillTicks"] = 0
+EndSub
+
+Sub RocketInitialize
+  rocket["x"] = 300
+  rocket["y"] = 500
+  rocket["bullets"] = numbullets
+  GraphicsWindow.PenColor = "salmon"
+  GraphicsWindow.BrushColor = "salmon"
+  rocket["rect1"] = Shapes.AddRectangle(rocket["rectWidth"], rocket["rectHeight"])
+  rocket["rect2"] = Shapes.AddRectangle(rocket["rectWidth"], rocket["rectHeight"])  
+  rocket["rect3"] = Shapes.AddRectangle(rocket["rectWidth"], rocket["rectHeight"])
+  
+  GraphicsWindow.BrushColor = "yellow"
+  bullets = Shapes.AddText("Bullet Count: " + rocket["bullets"])
+  bulletTimer = Shapes.AddText("")
+EndSub
+
+Sub RocketDraw
+  Shapes.Move(rocket["rect1"], rocket["x"]-(rocket["rectWidth"]/2), rocket["y"])
+  Shapes.Move(rocket["rect2"], rocket["x"]-(rocket["rectWidth"]/2)-rocket["rectWidth"]-rocket["widthDiff"], rocket["y"]+rocket["headDiff"])
+  Shapes.Move(rocket["rect3"], rocket["x"]+(rocket["rectWidth"]/2)+rocket["widthDiff"], rocket["y"]+rocket["headDiff"])
+  Shapes.Move(bullets, 480, 590)
+  Shapes.SetText(bullets, "Bullet Count: " + rocket["bullets"])
+  Shapes.Move(bulletTimer, 480, 578)
+EndSub
+
+Sub MoveRocket
+  If GraphicsWindow.LastKey = "Left" Then
+    rocket["x"] = rocket["x"] - rocket["moveDiff"]
+  ElseIf GraphicsWindow.LastKey = "Right" Then
+    rocket["x"] = rocket["x"] + rocket["moveDiff"]
+  ElseIf GraphicsWindow.LastKey = "Up" Then
+    rocket["bullets"] = rocket["bullets"] - 1
+    BulletFire()
+  ElseIf GraphicsWindow.LastKey = "Space" Then
+    rocket["bullets"] = rocket["bullets"] - 1
+    BulletFire()
+  EndIf
+  
+  If rocket["bullets"] <= 0 Then
+    rocket["bullets"] = 0
+    StartRefillTimer()
+  EndIf
+  
+  If rocket["x"] <= (rocket["rectWidth"]/2) + rocket["headDiff"] + rocket["rectWidth"] - 4 Then
+    rocket["x"] = (rocket["rectWidth"]/2) + rocket["headDiff"] + rocket["rectWidth"] - 4
+  EndIf  
+  If rocket["x"] >= width - ((rocket["rectWidth"]/2) + rocket["headDiff"] + rocket["rectWidth"]) + 14 Then
+    rocket["x"] = width - ((rocket["rectWidth"]/2) + rocket["headDiff"] + rocket["rectWidth"]) + 14
+  EndIf
+  RocketDraw()
+EndSub
+
+Sub StartRefillTimer
+  rocket["refillTicks"] = 0
+  Timer.Tick = OnTick
+  Timer.Resume()
+EndSub
+
+Sub OnTick
+  If rocket["refillTicks"] >= 10 Then
+    Timer.Pause()
+    rocket["bullets"] = numbullets
+    rocket["refillTicks"] = 0
+    Shapes.SetText(bulletTimer, "Reloaded")
+    BulletArrayReset()
+    RocketDraw()
+  Else
+    Shapes.SetText(bulletTimer, "Reload Time: " + (10 - rocket["refillTicks"]) + "s")
+    rocket["refillTicks"] = rocket["refillTicks"] + 1
+  EndIf
+EndSub
